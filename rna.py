@@ -21,103 +21,111 @@ def tanh(z):
 def tanh_deriv(z):
   return 1 - np.tanh(z)**2
 
-def rna_geral(formato, func, der):
-  f = np.vectorize(func)
-  df = np.vectorize(der)
-  n_camadas = len(formato) - 1
-  x_tam = formato[0]
-  y_tam = formato[-1]
+class NeuralMLP():
+  def __init__(self, shape, func, dfunc):
+    self.w = [] # matrizes de peso
+    self.b = [] # vetores de bias
+    self.z = [] # vetores de pre-ativação
+    self.a = [] # vetores de ativação
 
-  x = np.matrix([0.15,0.40])
-  w = [] # matrizes de peso
-  b = [] # vetores de bias
+    self.f = np.vectorize(func)
+    self.df = np.vectorize(dfunc)
+    self.n_layers = len(shape) - 1
 
-  # gerar pesos e bias aleatórios
-  for i in range(n_camadas):
-    w.append(np.random.rand(formato[i+1], formato[i]))
-    b.append(np.random.rand(formato[i+1], 1))
-
-  z = [] # vetores de pre-ativação
-  a = [] # vetores de ativação
-  a.append(x)
-
-  y = np.zeros(y_tam) # valores de saída
-  y_esperado = np.matrix([0.01]) # valores esperados
-
-  for j in range(1, 101):
-    print(f"******* Epoca {j} *******")
-    print(f"====== Entrada ========")
-    for i in range(n_camadas):
-      ###### Forward Pass ######
-
-      #print(f"a = {a[i]}")
-      print(f"w = {w[i].T}")
-      #print(f"b = {b[i]}")
-
-      z.append(np.dot(a[i], w[i].T) + b[i].T)
-      #print(f"z = {z[i]}")
-      a.append(f(z[i]))
-      if(i < n_camadas - 1):
-        print(f"====== Camada {i+1} ========")
-      else:
-        print("====== Saída ========")
-
-    y = a[n_camadas]
-    print(f"y = {y}")
-
-    dif = y - y_esperado
-    #print(dif)
-    #print(np.multiply(dif,dif))
-    erro = 0.5*(np.multiply(dif,dif))
-    print(f"Erro = {erro}")
-
-    #print(a)
-    #print(z)
-    ###### Backward Pass ######
-    nil = 0.5
-    delta = [0]*n_camadas # vetores de erro local
-    dL_dw = [0]*n_camadas # matrizes de derivadas parciais dos pesos
-    dL_db = [0]*n_camadas # vetores de derivadas parciais dos bias
-
+    # gerar pesos e bias aleatórios
+    for i in range(self.n_layers):
+      self.w.append(np.random.rand(shape[i+1], shape[i]))
+      self.b.append(np.random.rand(shape[i+1], 1))
     
-    delta[-1] = np.multiply(a[-1] - y_esperado, df(z[-1]))
-    dL_dw[-1] = np.dot(a[-2].T,delta[-1])
-    #print(f"antigo w2 = {w[-1]}")
-    w[-1] = w[-1].T - nil*dL_dw[-1]
-    
-    #print(f"novo w2 = {w[-1]}")
+    self.x_size = shape[0]
+    self.y_size = shape[-1]
 
-    dL_db[-1] = delta[-1]
-    b[-1] = b[-1] - nil*dL_db[-1]
-    for i in range(n_camadas-2, -1, -1):
+
+  def mlpTraining(self, x, y, epochs):
+    x = np.matrix(x)
+    y = np.matrix(y)
+    self.a = []
+    self.a.append(x)
+
+    for j in range(epochs):
+      print(f"******* Epoca {j+1} *******")
+      print(f"====== Entrada ========")
+
+      for i in range(self.n_layers):
+        ###### Forward Pass ######
+
+        self.z.append(np.dot(self.a[i], self.w[i].T) + self.b[i].T)
+        self.a.append(self.f(self.z[i]))
+        if(i < self.n_layers - 1):
+          print(f"====== Camada {i+1} ========")
+        else:
+          print("====== Saída ========")
+
+      y_ = self.a[self.n_layers]
+      print(f"y = {y_}")
+
+      dif = y_ - y
+      erro = 0.5*(np.multiply(dif,dif))
+      print(f"Erro = {erro}")
+
+      ###### Backward Pass ######
+      nil = 0.5
+      delta = [0]*self.n_layers # vetores de erro local
+      dL_dw = [0]*self.n_layers # matrizes de derivadas parciais dos pesos
+      dL_db = [0]*self.n_layers # vetores de derivadas parciais dos bias
+
+      # Erro local da última camada
+      delta[-1] = np.multiply(self.a[-1] - y, self.df(self.z[-1]))
+
+      # Derivação e atualização dos pesos da última camada
+      dL_dw[-1] = np.dot(self.a[-2].T,delta[-1])
+      self.w[-1] = self.w[-1].T - nil*dL_dw[-1]
       
-      #print(f"delta{i+1} = {delta[i+1]}")
-      #print(f"w = {w[i+1]}")
-      #print(f"deriv = {df(z[i])}")
+      # Derivação e atualização dos bias da última camada
+      dL_db[-1] = delta[-1]
+      self.b[-1] = self.b[-1] - nil*dL_db[-1]
 
-      delta_w = np.matrix(np.dot(w[i+1], delta[i+1]))
-      #print(f"delta_w = {delta_w}")
-      delta[i] = np.multiply(delta_w, df(z[i]).T)
-      
-      dL_dw[i] = np.dot(delta[i],a[i])
-      #print(f"antigo w{i} = {w[i]}")
-      w[i] = w[i] - nil*dL_dw[i]
-      #print(f"novo w{i} = {w[i]}")
+      for i in range(self.n_layers-2, -1, -1):
+        # Erro local
+        delta_w = np.matrix(np.dot(self.w[i+1], delta[i+1]))
+        delta[i] = np.multiply(delta_w, self.df(self.z[i]).T)
+        
+        # Derivação e atualização dos pesos
+        dL_dw[i] = np.dot(delta[i],self.a[i])
+        self.w[i] = self.w[i] - nil*dL_dw[i]
 
-      dL_db[i] = delta[i]
-      #print(f"antigo b{i} = {b[i]}")
-      b[i] = b[i] - nil*dL_db[i]
-      #print(f"novo b{i} = {b[i]}")
+        # Derivação e atualização dos bias
+        dL_db[i] = delta[i]
+        self.b[i] = self.b[i] - nil*dL_db[i]
+        
+        print("==================") 
+      self.w[-1] = self.w[-1].T
+      self.z = [] 
+      self.a = []
+      self.a.append(x)
+      print(f"w = {self.w}")
 
-      #print(f"delta{i} = {delta[i]}")
-      print("==================") 
-    w[-1] = w[-1].T
-    z = [] 
-    a = []
-    a.append(x)
-    
+  def generateOutput(self, x):
+    print("============= Gerando Saída =============")
+    ###### Forward Pass ######
+    for i in range(self.n_layers):
+      self.z.append(np.dot(self.a[i], self.w[i].T) + self.b[i].T)
+      self.a.append(self.f(self.z[i]))
+
+    y_ = self.a[self.n_layers]
+    print(f"y = {y_}")
 
 
 formato = [2,3,3,1]
+entrada1 = [0.15,0.40]
+saida1 = [0.02]
 
-rna_geral(formato, tanh, tanh_deriv)
+entrada2 = [0.50,0.30]
+saida2 = [0.05]
+
+rna = NeuralMLP(formato, tanh, tanh_deriv)
+rna.mlpTraining(entrada1,saida1,100)
+#rna.mlpTraining(entrada2,saida2,100)
+
+rna.generateOutput(entrada1)
+

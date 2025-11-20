@@ -1,10 +1,10 @@
 # RNA_Python
 Implementação geral de Redes Neurais Artificiais MLP em Python
 
-Até o momento a função rna() recebe o formato da rede, em uma lista, e a função de ativação que será utilizada. Ao rodar o programa valores de entrada, pesos e bias são gerados automaticamente, estes são apresentados no terminal, junto com o valor final da saída da rede para os valores gerados (Forward Pass).
+A classe NeuralMLP inicializa uma rede com pesos e bias aletórios com base em um formato definido na criação do objeto. Com o método mlpTraining(), a rede é treinada com base em uma entrada e saída determinada. Para verificar o treinamento, basta usar o método generateOutput(), passando um x como parâmetro.
 
 ## O que falta:
-- rna() receber a derivada da função de ativação
-- fazer uma função que aplica um algoritmo de backpropagation
-- criar um objeto para a rede
+- Verificar se o tamanho do vetor de entrada e de saída correspondem com o formato da rede
+- Fazer a rede treinar para diversos conjuntos entrada-saída
+- Construir redes com mais de um valor de y (no momento a saída só pode ter tamanho = 1)
 
