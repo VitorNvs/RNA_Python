@@ -40,79 +40,87 @@ class NeuralMLP():
     self.x_size = shape[0]
     self.y_size = shape[-1]
 
+  def verifySize(self, x, y):
+    if len(x) != self.x_size or len(y) != self.y_size:
+      if len(x) != self.x_size:
+        print("Tamanho de X inválido")  
+      if len(y) != self.y_size:
+        print("Tamanho de Y inválido")
 
-  def mlpTraining(self, x, y, epochs):
-    x = np.matrix(x)
-    y = np.matrix(y)
-    self.a = []
-    self.a.append(x)
+      return False
+    else:
+      return True
 
-    for j in range(epochs):
-      print(f"******* Epoca {j+1} *******")
-      print(f"====== Entrada ========")
-
-      for i in range(self.n_layers):
-        ###### Forward Pass ######
-
-        self.z.append(np.dot(self.a[i], self.w[i].T) + self.b[i].T)
-        self.a.append(self.f(self.z[i]))
-        if(i < self.n_layers - 1):
-          print(f"====== Camada {i+1} ========")
-        else:
-          print("====== Saída ========")
-
-      y_ = self.a[self.n_layers]
-      print(f"y = {y_}")
-
-      dif = y_ - y
-      erro = 0.5*(np.multiply(dif,dif))
-      print(f"Erro = {erro}")
-
-      ###### Backward Pass ######
-      nil = 0.5
-      delta = [0]*self.n_layers # vetores de erro local
-      dL_dw = [0]*self.n_layers # matrizes de derivadas parciais dos pesos
-      dL_db = [0]*self.n_layers # vetores de derivadas parciais dos bias
-
-      # Erro local da última camada
-      delta[-1] = np.multiply(self.a[-1] - y, self.df(self.z[-1]))
-
-      # Derivação e atualização dos pesos da última camada
-      dL_dw[-1] = np.dot(self.a[-2].T,delta[-1])
-      self.w[-1] = self.w[-1].T - nil*dL_dw[-1]
-      
-      # Derivação e atualização dos bias da última camada
-      dL_db[-1] = delta[-1]
-      self.b[-1] = self.b[-1] - nil*dL_db[-1]
-
-      for i in range(self.n_layers-2, -1, -1):
-        # Erro local
-        delta_w = np.matrix(np.dot(self.w[i+1], delta[i+1]))
-        delta[i] = np.multiply(delta_w, self.df(self.z[i]).T)
-        
-        # Derivação e atualização dos pesos
-        dL_dw[i] = np.dot(delta[i],self.a[i])
-        self.w[i] = self.w[i] - nil*dL_dw[i]
-
-        # Derivação e atualização dos bias
-        dL_db[i] = delta[i]
-        self.b[i] = self.b[i] - nil*dL_db[i]
-        
-        print("==================") 
-      self.w[-1] = self.w[-1].T
-      self.z = [] 
-      self.a = []
-      self.a.append(x)
-      print(f"w = {self.w}")
-
-  def generateOutput(self, x):
-    print("============= Gerando Saída =============")
-    ###### Forward Pass ######
+  def forwardPass(self):
     for i in range(self.n_layers):
       self.z.append(np.dot(self.a[i], self.w[i].T) + self.b[i].T)
       self.a.append(self.f(self.z[i]))
 
     y_ = self.a[self.n_layers]
+    return y_
+  
+  def backwardPass(self, y):
+    ###### Backward Pass ######
+    nil = 0.5
+    delta = [0]*self.n_layers # vetores de erro local
+    dL_dw = [0]*self.n_layers # matrizes de derivadas parciais dos pesos
+    dL_db = [0]*self.n_layers # vetores de derivadas parciais dos bias
+
+    # Erro local da última camada
+    delta[-1] = np.multiply(self.a[-1] - y, self.df(self.z[-1]))
+
+    # Derivação e atualização dos pesos da última camada
+    dL_dw[-1] = np.dot(self.a[-2].T,delta[-1])
+    self.w[-1] = self.w[-1].T - nil*dL_dw[-1]
+    
+    # Derivação e atualização dos bias da última camada
+    dL_db[-1] = delta[-1]
+    self.b[-1] = self.b[-1] - nil*dL_db[-1]
+
+    for i in range(self.n_layers-2, -1, -1):
+      # Erro local
+      delta_w = np.matrix(np.dot(self.w[i+1], delta[i+1]))
+      delta[i] = np.multiply(delta_w, self.df(self.z[i]).T)
+      
+      # Derivação e atualização dos pesos
+      dL_dw[i] = np.dot(delta[i],self.a[i])
+      self.w[i] = self.w[i] - nil*dL_dw[i]
+
+      # Derivação e atualização dos bias
+      dL_db[i] = delta[i]
+      self.b[i] = self.b[i] - nil*dL_db[i]
+   
+
+  def mlpTraining(self, x, y, epochs):
+    if self.verifySize(x,y):
+      x = np.matrix(x)
+      y = np.matrix(y)
+      self.a = []
+      self.a.append(x)
+
+      for j in range(epochs):
+        print(f"******* Epoca {j+1} *******")
+        
+        y_ = self.forwardPass()
+        print(f"y = {y_}")
+
+        dif = y_ - y
+        erro = 0.5*(np.multiply(dif,dif))
+        print(f"Erro = {erro}")
+
+        self.backwardPass(y)
+
+        self.w[-1] = self.w[-1].T
+        self.z = [] 
+        self.a = []
+        self.a.append(x)
+        print(f"w = {self.w}")
+    else:
+      return False
+    
+  def generateOutput(self, x):
+    print("============= Gerando Saída =============")
+    y_ = self.forwardPass()
     print(f"y = {y_}")
 
 
